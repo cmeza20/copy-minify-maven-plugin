@@ -1,7 +1,8 @@
 package com.cmeza.deployer.plugin.minify.process;
 
 import com.cmeza.deployer.plugin.minify.MinifyTarget;
-import com.cmeza.deployer.plugin.minify.configurations.MinifyBundles;
+import com.cmeza.deployer.plugin.minify.configurations.MinifyBundle;
+import com.cmeza.deployer.plugin.minify.configurations.MinifyConfiguration;
 import com.cmeza.deployer.plugin.minify.enums.Engine;
 import com.cmeza.deployer.plugin.minify.enums.MinifyType;
 import com.cmeza.deployer.plugin.utils.SourceFilesEnumeration;
@@ -28,26 +29,31 @@ public abstract class ProcessMinifyTask implements Callable<Object> {
     protected final Log log;
     protected final Charset charset;
     protected final Engine engine;
-    private final Builder builder;
     private final Path targetFolder;
-    private final Path sourceFolder;
+    private final MinifyBundle minifyBundle;
+    private final MinifyTarget minifyTarget;
     private final String mergedFilename;
     private final boolean isVerbose;
+    private final MinifyConfiguration configuration;
     private final List<File> files = new ArrayList<>();
 
     public ProcessMinifyTask(Builder builder) throws MojoExecutionException {
         try {
-            this.builder = builder;
+            Objects.requireNonNull(builder.getTarget().getConfiguration(), "Configuration is required!");
+
             this.log = builder.getLog();
-            this.isVerbose = builder.configuration.isVerbose();
-            this.charset = Charset.forName(builder.getConfiguration().getCharset());
-            this.sourceFolder = Utils.getAbsolutePath(builder.getTarget().isFindInParent(), builder.getTarget().getSearchIn());
-            this.targetFolder = Utils.concat(builder.getOutputFolder(), builder.target.getDestinationFolder());
+            this.minifyTarget = builder.getTarget();
+            this.configuration = minifyTarget.getConfiguration();
+            this.isVerbose = configuration.isVerbose();
+            this.minifyBundle = builder.getMinifyBundle();
+            this.charset = Charset.forName(configuration.getCharset());
+            this.targetFolder = Utils.concat(builder.getOutputFolder(), minifyTarget.getDestinationFolder());
+            Path sourceFolder = Utils.getAbsolutePath(minifyTarget.isFindInParent(), minifyTarget.getSearchIn());
 
             if (builder.getMinifyBundle().getType().equals(MinifyType.css)) {
-                this.engine = builder.getConfiguration().getCssEngine();
+                this.engine = configuration.getCssEngine();
             } else {
-                this.engine = builder.getConfiguration().getJsEngine();
+                this.engine = configuration.getJsEngine();
             }
             this.mergedFilename = builder.getMinifyBundle().getName();
 
@@ -64,7 +70,7 @@ public abstract class ProcessMinifyTask implements Callable<Object> {
     public Object call() throws IOException {
         synchronized (log) {
 
-            Utils.printTitle("Starting " + builder.getMinifyBundle().getType().getDescription() + " task:", log);
+            Utils.printTitle("Starting MINIFY " + minifyBundle.getType().getDescription() + " task:", log);
 
             if (Files.notExists(targetFolder) && !targetFolder.toFile().mkdirs()) {
                 throw new RuntimeException("Unable to create target directory for: " + targetFolder);
@@ -80,13 +86,13 @@ public abstract class ProcessMinifyTask implements Callable<Object> {
                     throw new RuntimeException("Unable to create target directory for: " + minifiedFile.getParentFile());
                 }
 
-                minify(mergedFile, minifiedFile, builder.getConfiguration());
+                minify(mergedFile, minifiedFile, configuration);
 
                 this.logCompressionGains(mergedFile, minifiedFile);
 
                 log.info("");
-            } else if (!builder.minifyBundle.getFiles().isEmpty()) {
-                log.error("No valid " + builder.getMinifyBundle().getType().getDescription() + " source files found to process.");
+            } else if (!minifyBundle.getFiles().isEmpty()) {
+                log.error("No valid " + minifyBundle.getType().getDescription() + " source files found to process.");
             }
         }
 
@@ -102,15 +108,17 @@ public abstract class ProcessMinifyTask implements Callable<Object> {
              OutputStream out = new FileOutputStream(mergedFile);
              InputStreamReader sequenceReader = new InputStreamReader(sequence, charset);
              OutputStreamWriter outWriter = new OutputStreamWriter(out, charset)) {
-            log.info("Creating the merged file [" + (isVerbose ? mergedFile.getPath() : mergedFile.getName()) + "].");
-            IOUtil.copy(sequenceReader, outWriter, builder.getConfiguration().getBufferSize());
+            if (configuration.isKeepMerged()) {
+                log.info("Creating the merged file [" + (isVerbose ? mergedFile.getPath() : mergedFile.getName()) + "].");
+            }
+            IOUtil.copy(sequenceReader, outWriter, configuration.getBufferSize());
         } catch (IOException e) {
             log.error("Failed to concatenate files.", e);
             throw e;
         }
     }
 
-    abstract void minify(File mergedFile, File minifiedFile, MinifyBundles.MinifyConfiguration configuration) throws IOException;
+    abstract void minify(File mergedFile, File minifiedFile, MinifyConfiguration configuration) throws IOException;
 
     private void logCompressionGains(File mergedFile, File minifiedFile) {
         try {
@@ -119,13 +127,16 @@ public abstract class ProcessMinifyTask implements Callable<Object> {
             try (InputStream in = new FileInputStream(minifiedFile);
                  OutputStream out = new FileOutputStream(temp);
                  GZIPOutputStream outGZIP = new GZIPOutputStream(out)) {
-                IOUtil.copy(in, outGZIP, builder.getConfiguration().getBufferSize());
+                IOUtil.copy(in, outGZIP, configuration.getBufferSize());
             }
 
             log.info("Uncompressed size: " + mergedFile.length() + " bytes.");
             log.info("Compressed size: " + minifiedFile.length() + " bytes minified (" + temp.length() + " bytes gzipped).");
 
             temp.deleteOnExit();
+            if (!configuration.isKeepMerged()) {
+                mergedFile.deleteOnExit();
+            }
         } catch (IOException e) {
             log.debug("Failed to calculate the gzipped file size.", e);
         }
@@ -156,13 +167,12 @@ public abstract class ProcessMinifyTask implements Callable<Object> {
 
     @Getter
     public static class Builder {
-        private MinifyBundles.MinifyBundle minifyBundle;
+        private MinifyBundle minifyBundle;
         private MinifyTarget target;
         private Log log;
-        private MinifyBundles.MinifyConfiguration configuration;
         private Path outputFolder;
 
-        public Builder withMinifyBundle(MinifyBundles.MinifyBundle minifyBundle) {
+        public Builder withMinifyBundle(MinifyBundle minifyBundle) {
             this.minifyBundle = minifyBundle;
             return this;
         }
@@ -177,11 +187,6 @@ public abstract class ProcessMinifyTask implements Callable<Object> {
             return this;
         }
 
-        public Builder withMinifyConfiguration(MinifyBundles.MinifyConfiguration configuration) {
-            this.configuration = configuration;
-            return this;
-        }
-
         public Builder withOutputFolder(Path outputFolder) {
             this.outputFolder = outputFolder;
             return this;
@@ -191,7 +196,6 @@ public abstract class ProcessMinifyTask implements Callable<Object> {
             Objects.requireNonNull(minifyBundle, "MinifyBundle is required!");
             Objects.requireNonNull(target, "MinifyTarget is required!");
             Objects.requireNonNull(log, "Log is required!");
-            Objects.requireNonNull(configuration, "MinifyConfiguration is required!");
             Objects.requireNonNull(outputFolder, "OutputFolder is required!");
             Objects.requireNonNull(minifyBundle.getType(), "Type of process is required!");
             switch (minifyBundle.getType()) {

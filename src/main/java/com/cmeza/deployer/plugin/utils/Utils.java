@@ -10,11 +10,15 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class Utils {
+
+    public static final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd-HHmmss");
 
     public static Path getAbsolutePath(boolean isParent) throws Exception {
         File root = new File(".");
@@ -74,7 +78,10 @@ public class Utils {
         log.info(lines);
     }
 
-    public static Path getOutputFolder(File outputFolder) throws MojoExecutionException {
+    public static Path getOutputFolder(File outputFolder, boolean versioned) throws MojoExecutionException {
+        if (versioned) {
+            outputFolder = new File(FilenameUtils.concat(outputFolder.getAbsolutePath(), format.format(new Date())));
+        }
         FileUtils.deleteQuietly(outputFolder);
         createDirectoryIfNotExists(outputFolder);
         return Paths.get(outputFolder.getAbsolutePath());
@@ -82,7 +89,7 @@ public class Utils {
 
     public static void createDirectoryIfNotExists(File file) throws MojoExecutionException {
         if (!file.exists()) {
-            boolean createFolder = file.mkdir();
+            boolean createFolder = file.mkdirs();
             if (!createFolder) {
                 throw new MojoExecutionException(file.getAbsolutePath() + " - The folder cannot be created");
             }
