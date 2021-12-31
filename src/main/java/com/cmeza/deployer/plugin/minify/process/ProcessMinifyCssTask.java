@@ -1,19 +1,19 @@
 package com.cmeza.deployer.plugin.minify.process;
 
-import com.cmeza.deployer.plugin.minify.configurations.MinifyBundles;
+import com.cmeza.deployer.plugin.minify.configurations.MinifyConfiguration;
 import com.yahoo.platform.yui.compressor.CssCompressor;
 import org.apache.maven.plugin.MojoExecutionException;
 
 import java.io.*;
 
-public class ProcessMinifyCssTask extends ProcessMinifyTask{
+public class ProcessMinifyCssTask extends ProcessMinifyTask {
 
     public ProcessMinifyCssTask(Builder builder) throws MojoExecutionException {
         super(builder);
     }
 
     @Override
-    void minify(File mergedFile, File minifiedFile, MinifyBundles.MinifyConfiguration configuration) throws IOException {
+    void minify(File mergedFile, File minifiedFile, MinifyConfiguration configuration) throws IOException {
 
         try (InputStream in = new FileInputStream(mergedFile);
              OutputStream out = new FileOutputStream(minifiedFile);

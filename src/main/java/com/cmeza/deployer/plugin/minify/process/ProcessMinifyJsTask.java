@@ -1,6 +1,6 @@
 package com.cmeza.deployer.plugin.minify.process;
 
-import com.cmeza.deployer.plugin.minify.configurations.MinifyBundles;
+import com.cmeza.deployer.plugin.minify.configurations.MinifyConfiguration;
 import com.cmeza.deployer.plugin.utils.JavaScriptErrorReporter;
 import com.google.javascript.jscomp.Compiler;
 import com.google.javascript.jscomp.*;
@@ -18,7 +18,7 @@ public class ProcessMinifyJsTask extends ProcessMinifyTask {
     }
 
     @Override
-    void minify(File mergedFile, File minifiedFile, MinifyBundles.MinifyConfiguration configuration) throws IOException {
+    void minify(File mergedFile, File minifiedFile, MinifyConfiguration configuration) throws IOException {
         try (InputStream in = new FileInputStream(mergedFile);
              OutputStream out = new FileOutputStream(minifiedFile);
              InputStreamReader reader = new InputStreamReader(in, charset);

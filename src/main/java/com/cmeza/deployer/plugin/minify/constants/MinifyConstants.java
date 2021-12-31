@@ -9,7 +9,9 @@ public class MinifyConstants {
 
     public static final String CHARSET = Charset.defaultCharset().name();
     public static final int BUFFER_SIZE = 4096;
-    public static final boolean VERBOSE = false;
+    public static final boolean VERBOSE = true;
+    public static final boolean KEPP_MERGED = true;
+    public static final boolean FIND_IN_PARENT = false;
 
     //CSS
     public static final Engine CSS_ENGINE = Engine.YUI;
