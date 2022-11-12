@@ -20,41 +20,56 @@
 		<plugin>
 			<groupId>com.cmeza</groupId>
 			<artifactId>copy-minify-maven-plugin</artifactId>
-			<version>1.1.0</version>
+			<version>2.0.0</version>
 			<configuration>
                 <outputFolder>/home/deploy</outputFolder>
                 <versioned>true</versioned>
-                <exec>
-                    <bundleConfiguration>src/main/resources/exec.json</bundleConfiguration>
-                </exec>
-                <copy>
-                    <bundleConfiguration>src/main/resources/copy.json</bundleConfiguration>
-                </copy>
-                <minify>
-                    <bundleConfiguration>src/main/resources/minify.json</bundleConfiguration>
-                    <destinationFolder>minified</destinationFolder>
-                    <searchIn>resources/src/main/webapp</searchIn>
-                    <findInParent>true</findInParent>
-                </minify>
+                <tasks>
+                    <task>
+                        <type>exec</type>
+                        <name>Exec name</name>
+                        <bundleConfiguration>src/main/resources/exec.json</bundleConfiguration>
+                    </task>
+                    <task>
+                        <type>copy</type>
+                        <name>Copy name</name>
+                        <bundleConfiguration>src/main/resources/copy.json</bundleConfiguration>
+                    </task>
+                    <task>
+                        <type>minify</type>
+                        <name>Minify name</name>
+                        <bundleConfiguration>src/main/resources/minify.json</bundleConfiguration>
+                        <destinationFolder>minified</destinationFolder>
+                        <searchIn>resources/src/main/webapp</searchIn>
+                        <findInParent>true</findInParent>
+                    </task>
+                </tasks>
 			</configuration>
 		</plugin>
 	</plugins>
 </build>
 ```
 
-| Attribute | Required | Default | Description |
-|----------|:-------------:|:------:|------------|
-| outputFolder |  Yes |  | Output deploy folder |
-| versioned |  No | true | Create a folder with the following format: yyyy-MM-dd-HHmmss|
-| exec | No |  | Configuration object for exec |
-| exec.bundleConfiguration | No |  | Json configuration file path |
-| copy | No |  | Configuration object for copy |
-| copy.bundleConfiguration | No |  | Json configuration file path |
-| minify | No |  | Configuration object for minify |
-| minify.bundleConfiguration | No |  | Json configuration file path |
-| minify.destinationFolder | No | ${outputFolder} | Destination folder |
-| minify.searchIn | No | ${rootFolder} | Search the folder |
-| minify.findInParent | No | false | Search in the upper directory |
+| Attribute                  | Required | Default | Description                                                  |
+|----------------------------|:--------:|:------:|--------------------------------------------------------------|
+| outputFolder               |   Yes    |  | Output deploy folder                                         |
+| versioned                  |    No    | true | Create a folder with the following format: yyyy-MM-dd-HHmmss |
+| tasks                      |   Yes    | | Things to do                                                 |
+| **Exec**                   ||||
+| type                       |   Yes    |  | Configuration object for exec                                |
+| name                       |    No    |  | Name of task                                                 |
+| bundleConfiguration        |    No    |  | Json configuration file path                                 |
+| **Copy**                   ||||
+| type                       |   Yes    |  | Configuration object for copy                                |
+| name                       |    No    |  | Name of task                                                 |
+| bundleConfiguration        |    No    |  | Json configuration file path                                 |
+| **Minify**                 ||||
+| type                       |   Yes    |  | Configuration object for minify                              |
+| name                       |    No    |  | Name of task                                                 |
+| bundleConfiguration |    No    |  | Json configuration file path                                 |
+| destinationFolder   |    No    | ${outputFolder} | Destination folder                                           |
+| searchIn            |    No    | ${rootFolder} | Search the folder                                            |
+| findInParent        |    No    | false | Search in the upper directory                                |
 
 ### Exec configuration example (exec.json)
 ```json
@@ -88,37 +103,42 @@
       "destinationFolder": "wars",
       "searchIn": "app-web/target",
       "suffix": ".war",
-      "findInParent": true
+      "findInParent": true,
+      "override": true
     },
     {
       "destinationFolder": "wars",
       "searchIn": "app-api/target",
       "suffix": ".war",
-      "findInParent": true
+      "findInParent": true,
+      "override": true
     },
     {
       "destinationFolder": "resources",
       "searchIn": "resources/src/main/webapp",
-      "findInParent": true
+      "findInParent": true,
+      "override": false
     },
     {
       "destinationFolder": "properties",
       "searchIn": "resources/src/main/resources",
       "suffix": "-prod.yml",
-      "findInParent": true
+      "findInParent": true,
+      "override": false
     }
   ]
 }
 
 ```
-| Attribute | Required | Default | Description |
-|----------|:-------------:|:------:|------------|
-| bundles | No | [bundle] | Configuration object for copy [bundle] |
-| bundle.destinationFolder | No | ${outputFolder} | Destination folder | 
-| bundle.searchIn | No |  | Search the folder or file |
-| bundle.suffix | No |  | File ends with |
-| bundle.prefix | No |  | File starts with |
-| bundle.findInParent | No | false | Search in the upper directory |
+| Attribute                | Required |     Default     | Description                            |
+|--------------------------|:-------------:|:---------------:|----------------------------------------|
+| bundles                  | No |    [bundle]     | Configuration object for copy [bundle] |
+| bundle.destinationFolder | No | ${outputFolder} | Destination folder                     | 
+| bundle.searchIn          | No |                 | Search the folder or file              |
+| bundle.suffix            | No |                 | File ends with                         |
+| bundle.prefix            | No |                 | File starts with                       |
+| bundle.findInParent      | No |      false      | Search in the upper directory          |
+| bundle.override           | No |      false      | Override file                          |
 
 ### Minify configuration example (minify.json)
 ```json
@@ -184,99 +204,6 @@
 | bundle.name | Yes |  | Final file name |
 | bundle.files | Yes | [] | List of files to minify |
 
-
-## Maven Plugin FULL XML Configuration ##
-```xml
-<build>
-	<plugins>
-		<plugin>
-			...
-			<configuration>
-                ...
-                <exec>
-                    <configuration>
-                        <verbose>true</verbose>
-                    </configuration>
-                     <bundles>
-                        <bundle>
-                            <searchIn></searchIn>
-                            <findInParent>true</findInParent>
-                            <command>mvn install</command>
-                        </bundle>
-                    </bundles>
-                </exec>
-                <copy>
-                    <bundles>
-                        <bundle>
-                            <destinationFolder>wars</destinationFolder>
-                            <searchIn>app-web/target</searchIn>
-                            <suffix>.war</suffix>
-                            <findInParent>true</findInParent>
-                        </bundle>
-                        <bundle>
-                            <destinationFolder>wars</destinationFolder>
-                            <searchIn>app-api/target</searchIn>
-                            <suffix>.war</suffix>
-                            <findInParent>true</findInParent>
-                        </bundle>
-                        <bundle>
-                            <destinationFolder>resources</destinationFolder>
-                            <searchIn>resources/src/main/webapp</searchIn>
-                            <findInParent>true</findInParent>
-                        </bundle>
-                        <bundle>
-                            <destinationFolder>properties</destinationFolder>
-                            <searchIn>resources/src/main/resources</searchIn>
-                            <suffix>.yml</suffix>
-                            <findInParent>true</findInParent>
-                        </bundle>
-                    </bundles>
-                </copy>
-                <minify>
-                    <destinationFolder>minified</destinationFolder>
-                    <searchIn>resources/src/main/webapp</searchIn>
-                    <findInParent>true</findInParent>
-                    <configuration>
-                        <charset>iso-8859-1</charset>
-                        <verbose>true</verbose>
-                        <keepMerged>true</keepMerged>
-                        <bufferSize>4096</bufferSize>
-                        <yuiLineBreak>-1</yuiLineBreak>
-                        <yuiNoMunge>false</yuiNoMunge>
-                        <yuiPreserveSemicolons>false</yuiPreserveSemicolons>
-                        <yuiDisableOptimizations>false</yuiDisableOptimizations>
-                        <closureLanguageIn>ECMASCRIPT_2021</closureLanguageIn>
-                        <closureLanguageOut>ECMASCRIPT5</closureLanguageOut>
-                        <closureEnvironment>BROWSER</closureEnvironment>
-                        <closureCreateSourceMap>false</closureCreateSourceMap>
-                        <closureAngularPass>false</closureAngularPass>
-                        <cssEngine>YUI</cssEngine>
-                        <jsEngine>CLOSURE</jsEngine>
-                    </configuration>
-                    <bundles>
-                        <bundle>
-                            <type>css</type>
-                            <name>css-static-combined.css</name>
-                            <files>
-                                <file>css/reset.css</file>
-                                <file>css/fonts.css</file>
-                            </files>
-                        </bundle>
-                        <bundle>
-                            <type>js</type>
-                            <name>js-static-combined.js</name>
-                            <files>
-                                <file>js/main.core.js</file>
-                                <file>js/main.search.js</file>
-                            </files>
-                        </bundle>
-                    </bundles>
-                </minify>
-			</configuration>
-		</plugin>
-	</plugins>
-</build>
-```
 
 ### Run maven plugin
 ```
