@@ -95,4 +95,9 @@ public class Utils {
             }
         }
     }
+
+    public static String concatName(String name) {
+        if (StringUtils.isEmpty(name)) return "";
+        return String.format(" - [Name: %s]", name);
+    }
 }

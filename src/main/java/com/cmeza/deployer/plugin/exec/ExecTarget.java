@@ -3,19 +3,15 @@ package com.cmeza.deployer.plugin.exec;
 import com.cmeza.deployer.plugin.exec.configurations.ExecBundle;
 import com.cmeza.deployer.plugin.exec.configurations.ExecConfiguration;
 import com.cmeza.deployer.plugin.utils.AbstractTarget;
+import lombok.Builder;
 import lombok.Data;
-import org.apache.maven.plugins.annotations.Parameter;
-
-import java.util.ArrayList;
-import java.util.List;
+import lombok.experimental.SuperBuilder;
 
 @Data
+@SuperBuilder
 public class ExecTarget extends AbstractTarget<ExecBundle> {
 
-    @Parameter(name = "configuration")
+    @Builder.Default
     private ExecConfiguration configuration = new ExecConfiguration();
-
-    @Parameter(name = "bundles")
-    private List<ExecBundle> bundles = new ArrayList<>();
 
 }

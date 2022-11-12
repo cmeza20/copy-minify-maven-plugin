@@ -23,19 +23,25 @@ public class ProcessCopyTask implements Callable<Object> {
 
     private final CopyBundle copyBundle;
 
+    private final boolean override;
+
+    private final String name;
+
     public ProcessCopyTask(Builder builder) {
         this.log = builder.getLog();
         this.outputFolder = builder.getOutputFolder();
         this.copyBundle = builder.getCopyBundle();
+        this.override = builder.getCopyBundle().isOverride();
+        this.name = builder.getCopyTarget().getName();
     }
 
     @Override
     public Object call() throws Exception {
         synchronized (log) {
             if (StringUtils.isEmpty(copyBundle.getDestinationFolder())) {
-                Utils.printTitle("Starting COPY task", log);
+                Utils.printTitle("Starting COPY Task" + Utils.concatName(name), log);
             } else {
-                Utils.printTitle("Starting COPY task: " + copyBundle.getDestinationFolder(), log);
+                Utils.printTitle("Starting COPY Task: " + copyBundle.getDestinationFolder() + Utils.concatName(name), log);
             }
 
             this.executeTarget(outputFolder, copyBundle);
@@ -54,7 +60,7 @@ public class ProcessCopyTask implements Callable<Object> {
                 throw new MojoExecutionException("The source file [" + source + "] does not exist.");
             }
 
-            Path destinationFolder = Utils.concat(outputFolder, copyBundle.getDestinationFolder());
+            Path destinationFolder = copyBundle.isFindInParent() ? Utils.getAbsolutePath(true, copyBundle.getDestinationFolder()) : Utils.concat(outputFolder, copyBundle.getDestinationFolder());
             Utils.createDirectoryIfNotExists(destinationFolder.toFile());
 
             if (Files.isDirectory(source)) {
@@ -87,6 +93,14 @@ public class ProcessCopyTask implements Callable<Object> {
     }
 
     private void copyFile(Path path, Path destinationFolder) throws Exception {
+        if (destinationFolder.toFile().exists()) {
+            if (!override) {
+                throw new Exception(String.format("File '%s' already exists", destinationFolder));
+            }
+            if (!destinationFolder.toFile().delete()) {
+                throw new Exception(String.format("File '%s' could not be deleted", destinationFolder));
+            }
+        }
         Files.copy(path, destinationFolder);
         log.info("Copied: " + destinationFolder);
     }

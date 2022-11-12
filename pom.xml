@@ -6,7 +6,7 @@
 
     <groupId>com.cmeza</groupId>
     <artifactId>copy-minify-maven-plugin</artifactId>
-    <version>1.1.0</version>
+    <version>2.0.0</version>
     <packaging>maven-plugin</packaging>
 
     <name>${project.groupId}:${project.artifactId}</name>

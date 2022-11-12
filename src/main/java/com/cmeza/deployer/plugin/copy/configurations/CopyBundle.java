@@ -10,4 +10,5 @@ public class CopyBundle extends AbstractBundle {
     private boolean findInParent;
     private String prefix;
     private String suffix;
+    private boolean override;
 }
