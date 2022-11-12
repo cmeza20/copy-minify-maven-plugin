@@ -23,17 +23,20 @@ public class ProcessExecTask implements Callable<Object> {
     private final Log log;
     private final ExecBundle execBundle;
     private final ExecConfiguration configuration;
+    private final String name;
 
     public ProcessExecTask(Builder builder) {
         this.log = builder.getLog();
         this.execBundle = builder.getExecBundle();
         this.configuration = builder.getExecTarget().getConfiguration();
+        this.name = builder.execTarget.getName();
     }
 
     @Override
     public Object call() throws Exception {
         synchronized (log) {
-            Utils.printTitle("Starting EXEC task: " + execBundle.getCommand(), log);
+
+            Utils.printTitle("Starting EXEC task: " + execBundle.getCommand() + Utils.concatName(name), log);
 
             Path folder = Utils.getAbsolutePath(execBundle.isFindInParent(), execBundle.getSearchIn());
 

@@ -8,6 +8,7 @@ import com.cmeza.deployer.plugin.exec.configurations.ExecBundle;
 import com.cmeza.deployer.plugin.exec.process.ProcessExecTask;
 import com.cmeza.deployer.plugin.minify.MinifyTarget;
 import com.cmeza.deployer.plugin.minify.configurations.MinifyBundle;
+import com.cmeza.deployer.plugin.minify.enums.TaskType;
 import com.cmeza.deployer.plugin.minify.process.ProcessMinifyTask;
 import com.cmeza.deployer.plugin.utils.AbstractBundle;
 import com.cmeza.deployer.plugin.utils.AbstractTarget;
@@ -42,51 +43,67 @@ public class DeployerMojo extends CommonsMojo {
         Path output = Utils.getOutputFolder(outputFolder, versioned);
         Collection<Callable<Object>> processFilesTasks = new LinkedList<>();
 
-        if (Objects.nonNull(exec)) {
-            ExecTarget target = this.readTarget(exec, ExecTarget.class, ((fromProperties, fromJson) -> {
-                fromProperties.setBundles(fromJson.getBundles());
-                fromProperties.setConfiguration(fromJson.getConfiguration());
-            }));
+        if (Objects.nonNull(tasks)) {
+            for (Tasks<?> task : tasks) {
 
-            for (ExecBundle bundle : target.getBundles()) {
-                ProcessExecTask.Builder builder = new ProcessExecTask.Builder()
-                        .withLog(getLog())
-                        .withExecTarget(target)
-                        .withExecBundle(bundle);
-                processFilesTasks.add(builder.build());
+                switch (task.getTaskType()) {
+                    case copy:
+
+                        CopyTarget copyTargetTemp = CopyTarget.builder()
+                                .name(task.getName())
+                                .bundleConfiguration(task.getBundleConfiguration())
+                                .build();
+
+                        CopyTarget copyTarget = this.readTarget(copyTargetTemp, CopyTarget.class, ((fromProperties, fromJson) -> {
+                            fromProperties.setBundles(fromJson.getBundles());
+                        }));
+
+                        for (CopyBundle bundle : copyTarget.getBundles()) {
+                            ProcessCopyTask.Builder builder = new ProcessCopyTask.Builder().withLog(getLog()).withCopyTarget(copyTarget).withCopyBundle(bundle).withOutputFolder(output);
+                            processFilesTasks.add(builder.build());
+                        }
+                        break;
+                    case exec:
+                        ExecTarget execTargetTemp = ExecTarget.builder()
+                                .name(task.getName())
+                                .bundleConfiguration(task.getBundleConfiguration())
+                                .configuration(task.getExecConfiguration())
+                                .build();
+
+                        ExecTarget execTarget = this.readTarget(execTargetTemp, ExecTarget.class, ((fromProperties, fromJson) -> {
+                            fromProperties.setBundles(fromJson.getBundles());
+                            fromProperties.setConfiguration(fromJson.getConfiguration());
+                        }));
+
+                        for (ExecBundle bundle : execTarget.getBundles()) {
+                            ProcessExecTask.Builder builder = new ProcessExecTask.Builder().withLog(getLog()).withExecTarget(execTarget).withExecBundle(bundle);
+                            processFilesTasks.add(builder.build());
+                        }
+                        break;
+                    case minify:
+                        MinifyTarget minifyTargetTemp = MinifyTarget.builder()
+                                .name(task.getName())
+                                .bundleConfiguration(task.getBundleConfiguration())
+                                .configuration(task.getMinifyConfiguration())
+                                .destinationFolder(task.getDestinationFolder())
+                                .searchIn(task.getSearchIn())
+                                .findInParent(task.isFindInParent())
+                                .build();
+                        MinifyTarget minifyTarget = this.readTarget(minifyTargetTemp, MinifyTarget.class, (fromProperties, fromJson) -> {
+                            fromProperties.setConfiguration(fromJson.getConfiguration());
+                            fromProperties.setBundles(fromJson.getBundles());
+                        });
+
+                        for (MinifyBundle bundle : minifyTarget.getBundles()) {
+                            ProcessMinifyTask.Builder builder = new ProcessMinifyTask.Builder().withLog(getLog()).withMinifyTarget(minifyTarget).withMinifyBundle(bundle).withOutputFolder(output);
+                            processFilesTasks.add(builder.build());
+                        }
+                        break;
+                    default:
+                        throw new MojoExecutionException("Incorrect Task Type: " + StringUtils.join(TaskType.values(), ", "));
+                }
             }
-        }
 
-
-        if (Objects.nonNull(copy)) {
-            CopyTarget target = this.readTarget(copy, CopyTarget.class, ((fromProperties, fromJson) -> {
-                fromProperties.setBundles(fromJson.getBundles());
-            }));
-
-            for (CopyBundle bundle : target.getBundles()) {
-                ProcessCopyTask.Builder builder = new ProcessCopyTask.Builder()
-                        .withLog(getLog())
-                        .withCopyTarget(target)
-                        .withCopyBundle(bundle)
-                        .withOutputFolder(output);
-                processFilesTasks.add(builder.build());
-            }
-        }
-
-        if (Objects.nonNull(minify)) {
-            MinifyTarget target = this.readTarget(minify, MinifyTarget.class, (fromProperties, fromJson) -> {
-                fromProperties.setConfiguration(fromJson.getConfiguration());
-                fromProperties.setBundles(fromJson.getBundles());
-            });
-
-            for (MinifyBundle bundle : target.getBundles()) {
-                ProcessMinifyTask.Builder builder = new ProcessMinifyTask.Builder()
-                        .withLog(getLog())
-                        .withMinifyTarget(target)
-                        .withMinifyBundle(bundle)
-                        .withOutputFolder(output);
-                processFilesTasks.add(builder.build());
-            }
         }
 
         if (!processFilesTasks.isEmpty()) {

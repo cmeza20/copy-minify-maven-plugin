@@ -70,7 +70,7 @@ public abstract class ProcessMinifyTask implements Callable<Object> {
     public Object call() throws IOException {
         synchronized (log) {
 
-            Utils.printTitle("Starting MINIFY " + minifyBundle.getType().getDescription() + " task:", log);
+            Utils.printTitle("Starting MINIFY " + minifyBundle.getType().getDescription() + " task" + Utils.concatName(minifyTarget.getName()), log);
 
             if (Files.notExists(targetFolder) && !targetFolder.toFile().mkdirs()) {
                 throw new RuntimeException("Unable to create target directory for: " + targetFolder);
